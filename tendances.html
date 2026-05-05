@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tendances — LOTO Loiret | Vestas</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--vestas-blue:#003F6B;--vestas-sky:#009FDF;--vestas-light:#E8F4FB;--vestas-dark:#001F35;--vestas-grey:#F4F6F8;--vestas-border:#D0E4F0;--vestas-green:#2E7D32;--vestas-lgreen:#E8F5E9;--vestas-red:#C62828;--vestas-lred:#FFEBEE;--text-primary:#001F35;--text-secondary:#4A6275;--white:#FFFFFF;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',sans-serif;background:var(--vestas-grey);color:var(--text-primary);}
+  nav{background:var(--vestas-blue);padding:0 32px;display:flex;align-items:center;height:60px;gap:32px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25);}
+  .nav-brand{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:#fff;letter-spacing:1px;margin-right:auto;display:flex;align-items:center;gap:10px;}
+  .nav-brand svg{width:28px;height:28px;fill:var(--vestas-sky);}
+  nav a{color:rgba(255,255,255,.75);text-decoration:none;font-size:13px;font-weight:500;letter-spacing:.5px;padding:6px 14px;border-radius:4px;transition:all .2s;}
+  nav a:hover{color:#fff;background:rgba(255,255,255,.1);}
+  nav a.active{color:var(--vestas-sky);border-bottom:2px solid var(--vestas-sky);border-radius:0;}
+  .page-header{background:linear-gradient(135deg,var(--vestas-blue) 0%,#005A9E 100%);padding:36px 40px 28px;color:#fff;}
+  .page-header h1{font-family:'Rajdhani',sans-serif;font-size:32px;font-weight:700;letter-spacing:1px;}
+  .page-header p{font-size:14px;opacity:.75;margin-top:4px;}
+  main{padding:32px 40px;max-width:1400px;margin:0 auto;}
+
+  .card{background:var(--white);border-radius:8px;padding:28px;box-shadow:0 1px 6px rgba(0,63,107,.08);margin-bottom:24px;}
+  .card-title{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--vestas-blue);margin-bottom:4px;}
+  .card-sub{font-size:12px;color:var(--text-secondary);margin-bottom:22px;}
+  .chart-wrap{position:relative;height:320px;}
+  .chart-wrap-lg{position:relative;height:400px;}
+
+  /* Trend comparison table */
+  .trend-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .trend-table th{background:var(--vestas-blue);color:#fff;padding:11px 16px;text-align:center;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;}
+  .trend-table th:first-child{text-align:left;}
+  .trend-table td{padding:11px 16px;border-bottom:1px solid var(--vestas-border);text-align:center;}
+  .trend-table td:first-child{text-align:left;font-weight:600;color:var(--vestas-blue);}
+  .trend-table tr:nth-child(even) td{background:var(--vestas-light);}
+  .trend-table tr.global-row td{background:var(--vestas-blue)!important;color:#fff;font-family:'Rajdhani',sans-serif;font-size:14px;}
+  .delta-pos{color:var(--vestas-green);font-weight:700;background:var(--vestas-lgreen);padding:3px 10px;border-radius:12px;display:inline-block;}
+  .delta-neg{color:var(--vestas-red);font-weight:700;background:var(--vestas-lred);padding:3px 10px;border-radius:12px;display:inline-block;}
+  .delta-zero{color:var(--text-secondary);font-weight:600;}
+
+  /* N vs N-1 chart pair */
+  .chart-pair{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;}
+
+  #loading{position:fixed;inset:0;background:var(--vestas-blue);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity .5s;}
+  .spinner{width:48px;height:48px;border:4px solid rgba(255,255,255,.2);border-top-color:var(--vestas-sky);border-radius:50%;animation:spin .8s linear infinite;}
+  #loading p{color:rgba(255,255,255,.8);margin-top:16px;font-size:14px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @media(max-width:768px){main{padding:20px;}.chart-pair{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div id="loading"><div class="spinner"></div><p>Chargement des données…</p></div>
+
+<nav>
+  <div class="nav-brand">
+    <svg viewBox="0 0 24 24"><path d="M12 2L8 8H3l4 3-1.5 5L12 13l6.5 3L17 11l4-3h-5z"/></svg>
+    LOTO Loiret
+  </div>
+  <a href="dashboard.html">Dashboard</a>
+  <a href="techniciens.html">Techniciens</a>
+  <a href="lotos.html">Types LOTO</a>
+  <a href="tendances.html" class="active">Tendances</a>
+</nav>
+
+<div class="page-header">
+  <h1>TENDANCES & ÉVOLUTION</h1>
+  <p>Comparaison mensuelle · Année N vs N-1 · Suivi par technicien</p>
+</div>
+
+<main>
+  <!-- BLOC 1 : courbe globale 12 mois -->
+  <div class="card">
+    <div class="card-title">ÉVOLUTION GLOBALE — 12 MOIS GLISSANTS</div>
+    <div class="card-sub">Nombre total de LOTO completed par mois avec tendance linéaire</div>
+    <div class="chart-wrap-lg"><canvas id="chart-global"></canvas></div>
+  </div>
+
+  <!-- BLOC 2 : N vs N-1 -->
+  <div class="chart-pair">
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">ANNÉE EN COURS vs N-1</div>
+      <div class="card-sub">Comparaison mois par mois</div>
+      <div class="chart-wrap"><canvas id="chart-year-compare"></canvas></div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">CUMUL ANNUEL</div>
+      <div class="card-sub">Progression cumulée N vs N-1</div>
+      <div class="chart-wrap"><canvas id="chart-cumul"></canvas></div>
+    </div>
+  </div>
+  <div style="height:24px"></div>
+
+  <!-- BLOC 3 : tableau tendances par technicien -->
+  <div class="card">
+    <div class="card-title">TENDANCES PAR TECHNICIEN</div>
+    <div class="card-sub">Mois en cours vs précédent · Mois en cours vs même mois N-1 · Année N vs N-1</div>
+    <table class="trend-table" id="trend-table">
+      <thead>
+        <tr>
+          <th>Technicien</th>
+          <th id="col-cur"></th>
+          <th id="col-prev"></th>
+          <th>Δ mois</th>
+          <th id="col-ly"></th>
+          <th>Δ vs N-1</th>
+          <th>Année N</th>
+          <th>Année N-1</th>
+          <th>Δ annuel</th>
+        </tr>
+      </thead>
+      <tbody id="trend-body"></tbody>
+    </table>
+  </div>
+
+  <!-- BLOC 4 : courbes par technicien -->
+  <div class="card">
+    <div class="card-title">COURBES PAR TECHNICIEN — 12 MOIS</div>
+    <div class="card-sub">Évolution individuelle — chaque couleur = un technicien</div>
+    <div class="chart-wrap-lg"><canvas id="chart-lines"></canvas></div>
+  </div>
+</main>
+
+<script>
+const DATA_URL = 'loto_data.json';
+const COLORS = ['#009FDF','#003F6B','#2E7D32','#E65100','#6A1B9A','#00695C','#AD1457','#1565C0','#558B2F','#4E342E','#37474F','#F57F17'];
+
+function getRolling12() {
+  const now = new Date(); const months=[];
+  for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({year:String(d.getFullYear()),month:String(d.getMonth()+1).padStart(2,'0'),label:d.toLocaleDateString('fr-FR',{month:'short',year:'numeric'})});}
+  return months;
+}
+
+function getMonthsForYear(year) {
+  return Array.from({length:12},(_,i)=>({month:String(i+1).padStart(2,'0'),year:String(year),label:new Date(year,i,1).toLocaleDateString('fr-FR',{month:'short'})}));
+}
+
+function deltaHTML(d, globalRow=false) {
+  if(globalRow) return d>0?`<span style="color:#C6EFCE;font-weight:700">+${d}</span>`:d<0?`<span style="color:#FFCDD2;font-weight:700">${d}</span>`:`<span style="opacity:.7">0</span>`;
+  if(d>0) return `<span class="delta-pos">+${d}</span>`;
+  if(d<0) return `<span class="delta-neg">${d}</span>`;
+  return `<span class="delta-zero">0</span>`;
+}
+
+async function main() {
+  const res = await fetch(DATA_URL+'?t='+Date.now()).catch(()=>null);
+  document.getElementById('loading').style.opacity='0';
+  setTimeout(()=>document.getElementById('loading').style.display='none',500);
+  if(!res||!res.ok) return;
+  const data = await res.json();
+  const rows = data.rows||[];
+
+  const now = new Date();
+  const thisM = String(now.getMonth()+1).padStart(2,'0'), thisY = String(now.getFullYear());
+  const prevM = now.getMonth()===0?'12':String(now.getMonth()).padStart(2,'0');
+  const prevMY = now.getMonth()===0?String(now.getFullYear()-1):thisY;
+  const prevY = String(now.getFullYear()-1);
+  const rolling = getRolling12();
+  const inits = [...new Set(rows.map(r=>r.initial).filter(Boolean))].sort();
+
+  // Header labels
+  const mFmt = (m,y) => new Date(+y, +m-1, 1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  document.getElementById('col-cur').textContent = mFmt(thisM, thisY);
+  document.getElementById('col-prev').textContent = mFmt(prevM, prevMY);
+  document.getElementById('col-ly').textContent = mFmt(thisM, prevY);
+
+  // ── Chart global avec trendline
+  const mCounts = rolling.map(m=>rows.filter(r=>r.month===m.month&&r.year==m.year).length);
+  const n = mCounts.length;
+  const xBar = (n-1)/2, yBar = mCounts.reduce((a,b)=>a+b,0)/n;
+  const num = mCounts.reduce((s,y,i)=>s+(i-xBar)*(y-yBar),0);
+  const den = mCounts.reduce((s,_,i)=>s+(i-xBar)**2,0);
+  const slope = den?num/den:0, intercept = yBar - slope*xBar;
+  const trend = mCounts.map((_,i)=>+(intercept+slope*i).toFixed(2));
+
+  new Chart(document.getElementById('chart-global'),{
+    data:{
+      labels:rolling.map(m=>m.label),
+      datasets:[
+        {type:'bar',label:'LOTO Completed',data:mCounts,backgroundColor:mCounts.map((v,i)=>i===11?'rgba(0,159,223,0.85)':'rgba(0,159,223,0.45)'),borderColor:'#009FDF',borderWidth:1.5,borderRadius:4,yAxisID:'y'},
+        {type:'line',label:'Tendance',data:trend,borderColor:'#E65100',borderWidth:2.5,borderDash:[6,3],pointRadius:0,fill:false,tension:0,yAxisID:'y'}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:'Inter',size:12}}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,63,107,.08)'},ticks:{font:{family:'Inter',size:12}}},x:{grid:{display:false},ticks:{font:{family:'Inter',size:11}}}}}
+  });
+
+  // ── N vs N-1 bar compare
+  const curMonths = getMonthsForYear(+thisY);
+  const nCounts = curMonths.map(m=>rows.filter(r=>r.month===m.month&&r.year===thisY).length);
+  const n1Counts = curMonths.map(m=>rows.filter(r=>r.month===m.month&&r.year===prevY).length);
+
+  new Chart(document.getElementById('chart-year-compare'),{
+    type:'bar',
+    data:{labels:curMonths.map(m=>m.label),datasets:[
+      {label:thisY,data:nCounts,backgroundColor:'rgba(0,159,223,0.8)',borderRadius:3},
+      {label:prevY,data:n1Counts,backgroundColor:'rgba(0,63,107,0.35)',borderRadius:3}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:'Inter',size:12}}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,63,107,.08)'}},x:{grid:{display:false},ticks:{font:{size:11}}}}}
+  });
+
+  // ── Cumul annuel
+  const cumN=[],cumN1=[];
+  let sN=0,sN1=0;
+  curMonths.forEach((m,i)=>{sN+=nCounts[i];sN1+=n1Counts[i];cumN.push(sN);cumN1.push(sN1);});
+  new Chart(document.getElementById('chart-cumul'),{
+    type:'line',
+    data:{labels:curMonths.map(m=>m.label),datasets:[
+      {label:thisY,data:cumN,borderColor:'#009FDF',backgroundColor:'rgba(0,159,223,0.1)',borderWidth:2.5,fill:true,tension:0.3,pointRadius:3},
+      {label:prevY,data:cumN1,borderColor:'rgba(0,63,107,0.5)',backgroundColor:'rgba(0,63,107,0.04)',borderWidth:2,borderDash:[5,4],fill:true,tension:0.3,pointRadius:3}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:'Inter',size:12}}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,63,107,.08)'}},x:{grid:{display:false},ticks:{font:{size:11}}}}}
+  });
+
+  // ── Trend table
+  const allInits = [...inits, '__GLOBAL__'];
+  let tbody = '';
+  allInits.forEach(init => {
+    const isGlobal = init === '__GLOBAL__';
+    const techRows = isGlobal ? rows : rows.filter(r=>r.initial===init);
+    const lbl = isGlobal ? 'GLOBAL (tous)' : init;
+    const cThis  = techRows.filter(r=>r.month===thisM&&r.year===thisY).length;
+    const cPrev  = techRows.filter(r=>r.month===prevM&&r.year===prevMY).length;
+    const cLastY = techRows.filter(r=>r.month===thisM&&r.year===prevY).length;
+    const cYearN = techRows.filter(r=>r.year===thisY).length;
+    const cYearN1= techRows.filter(r=>r.year===prevY).length;
+    const d1 = cThis-cPrev, d2 = cThis-cLastY, d3 = cYearN-cYearN1;
+    const rc = isGlobal ? 'global-row' : '';
+    tbody += `<tr class="${rc}">
+      <td>${lbl}</td>
+      <td>${cThis}</td>
+      <td>${cPrev}</td>
+      <td>${deltaHTML(d1,isGlobal)}</td>
+      <td>${cLastY}</td>
+      <td>${deltaHTML(d2,isGlobal)}</td>
+      <td>${cYearN}</td>
+      <td>${cYearN1}</td>
+      <td>${deltaHTML(d3,isGlobal)}</td>
+    </tr>`;
+  });
+  document.getElementById('trend-body').innerHTML = tbody;
+
+  // ── Lines per tech
+  new Chart(document.getElementById('chart-lines'),{
+    type:'line',
+    data:{
+      labels:rolling.map(m=>m.label),
+      datasets: inits.map((init,idx)=>({
+        label:init,
+        data:rolling.map(m=>rows.filter(r=>r.initial===init&&r.month===m.month&&r.year==m.year).length),
+        borderColor:COLORS[idx%COLORS.length],
+        backgroundColor:'transparent',
+        borderWidth:2,
+        pointRadius:3,
+        tension:0.3
+      }))
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{family:'Inter',size:11},boxWidth:12,padding:10}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,63,107,.08)'}},x:{grid:{display:false},ticks:{font:{size:11}}}}}
+  });
+}
+main();
+</script>
+</body>
+</html>

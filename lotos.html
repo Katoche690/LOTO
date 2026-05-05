@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Types LOTO — Loiret | Vestas</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --vestas-blue:#003F6B;--vestas-sky:#009FDF;--vestas-light:#E8F4FB;
+    --vestas-dark:#001F35;--vestas-grey:#F4F6F8;--vestas-border:#D0E4F0;
+    --vestas-green:#2E7D32;--vestas-red:#C62828;
+    --text-primary:#001F35;--text-secondary:#4A6275;--white:#FFFFFF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',sans-serif;background:var(--vestas-grey);color:var(--text-primary);}
+  nav{background:var(--vestas-blue);padding:0 32px;display:flex;align-items:center;height:60px;gap:32px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25);}
+  .nav-brand{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:#fff;letter-spacing:1px;margin-right:auto;display:flex;align-items:center;gap:10px;}
+  .nav-brand svg{width:28px;height:28px;fill:var(--vestas-sky);}
+  nav a{color:rgba(255,255,255,.75);text-decoration:none;font-size:13px;font-weight:500;letter-spacing:.5px;padding:6px 14px;border-radius:4px;transition:all .2s;}
+  nav a:hover{color:#fff;background:rgba(255,255,255,.1);}
+  nav a.active{color:var(--vestas-sky);border-bottom:2px solid var(--vestas-sky);border-radius:0;}
+  .page-header{background:linear-gradient(135deg,var(--vestas-blue) 0%,#005A9E 100%);padding:36px 40px 28px;color:#fff;}
+  .page-header h1{font-family:'Rajdhani',sans-serif;font-size:32px;font-weight:700;letter-spacing:1px;}
+  .page-header p{font-size:14px;opacity:.75;margin-top:4px;}
+  main{padding:32px 40px;max-width:1400px;margin:0 auto;}
+
+  .search-bar{display:flex;gap:12px;margin-bottom:28px;}
+  .search-input{flex:1;border:1.5px solid var(--vestas-border);background:var(--white);padding:10px 16px;border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text-primary);}
+  .search-input:focus{outline:none;border-color:var(--vestas-sky);}
+  .search-input::placeholder{color:#aaa;}
+
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;}
+  .card{background:var(--white);border-radius:8px;padding:24px;box-shadow:0 1px 6px rgba(0,63,107,.08);}
+  .card-title{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--vestas-blue);margin-bottom:4px;}
+  .card-sub{font-size:12px;color:var(--text-secondary);margin-bottom:20px;}
+  .chart-wrap{position:relative;height:320px;}
+  .chart-wrap-lg{position:relative;height:460px;}
+
+  /* Ranking table */
+  .rank-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .rank-table th{background:var(--vestas-blue);color:#fff;padding:10px 14px;text-align:left;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;}
+  .rank-table th:last-child,.rank-table td:last-child{text-align:right;}
+  .rank-table td{padding:10px 14px;border-bottom:1px solid var(--vestas-border);vertical-align:middle;}
+  .rank-table tr:nth-child(even) td{background:var(--vestas-light);}
+  .rank-table tr:hover td{background:#EBF5FB;}
+  .rank-num{width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;}
+  .rank-1{background:#FFD700;color:#5D4037;}
+  .rank-2{background:#C0C0C0;color:#37474F;}
+  .rank-3{background:#CD7F32;color:#fff;}
+  .rank-other{background:var(--vestas-light);color:var(--vestas-blue);}
+  .bar-inline{height:8px;border-radius:4px;background:var(--vestas-light);overflow:hidden;min-width:80px;}
+  .bar-fill{height:100%;background:var(--vestas-sky);border-radius:4px;transition:width .8s ease;}
+  .pct-badge{font-size:11px;font-weight:600;color:var(--text-secondary);white-space:nowrap;}
+
+  /* Detail panel */
+  .detail-panel{background:var(--white);border-radius:8px;padding:28px;box-shadow:0 1px 6px rgba(0,63,107,.08);margin-top:24px;display:none;border-left:4px solid var(--vestas-sky);}
+  .detail-panel.visible{display:block;}
+  .dp-title{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;color:var(--vestas-blue);margin-bottom:4px;}
+  .dp-sub{font-size:12px;color:var(--text-secondary);margin-bottom:20px;}
+  .dp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+  .dp-stat{background:var(--vestas-light);border-radius:6px;padding:16px;text-align:center;}
+  .dp-stat-val{font-family:'Rajdhani',sans-serif;font-size:32px;font-weight:700;color:var(--vestas-blue);}
+  .dp-stat-lbl{font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-top:4px;}
+  .dp-chart-row{display:grid;grid-template-columns:2fr 1fr;gap:20px;}
+  .dp-chart-wrap{position:relative;height:220px;}
+
+  #loading{position:fixed;inset:0;background:var(--vestas-blue);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity .5s;}
+  .spinner{width:48px;height:48px;border:4px solid rgba(255,255,255,.2);border-top-color:var(--vestas-sky);border-radius:50%;animation:spin .8s linear infinite;}
+  #loading p{color:rgba(255,255,255,.8);margin-top:16px;font-size:14px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @media(max-width:768px){main{padding:20px;}.grid-2{grid-template-columns:1fr;}.dp-grid{grid-template-columns:repeat(2,1fr);}.dp-chart-row{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div id="loading"><div class="spinner"></div><p>Chargement des données…</p></div>
+
+<nav>
+  <div class="nav-brand">
+    <svg viewBox="0 0 24 24"><path d="M12 2L8 8H3l4 3-1.5 5L12 13l6.5 3L17 11l4-3h-5z"/></svg>
+    LOTO Loiret
+  </div>
+  <a href="dashboard.html">Dashboard</a>
+  <a href="techniciens.html">Techniciens</a>
+  <a href="lotos.html" class="active">Types LOTO</a>
+  <a href="tendances.html">Tendances</a>
+</nav>
+
+<div class="page-header">
+  <h1>TYPES DE LOTO</h1>
+  <p>Classement et analyse des procédures LOTO utilisées</p>
+</div>
+
+<main>
+  <div class="search-bar">
+    <input class="search-input" id="search" placeholder="🔍  Rechercher un type de LOTO…" oninput="filterTable()">
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">TOP 10 — DISTRIBUTION</div>
+      <div class="card-sub">Part relative de chaque type sur le total</div>
+      <div class="chart-wrap"><canvas id="chart-donut"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">TOP 15 — CLASSEMENT</div>
+      <div class="card-sub">Nombre d'utilisations</div>
+      <div class="chart-wrap"><canvas id="chart-hbar"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:24px;">
+    <div class="card-title">CLASSEMENT COMPLET</div>
+    <div class="card-sub">Cliquer sur une ligne pour voir le détail — <span id="result-count"></span></div>
+    <table class="rank-table" id="rank-table">
+      <thead><tr><th>#</th><th>Type de LOTO</th><th style="min-width:120px">Progression</th><th>Nb</th><th>%</th></tr></thead>
+      <tbody id="rank-body"></tbody>
+    </table>
+  </div>
+
+  <div class="detail-panel" id="detail-panel">
+    <div class="dp-title" id="dp-title"></div>
+    <div class="dp-sub" id="dp-sub"></div>
+    <div class="dp-grid" id="dp-grid"></div>
+    <div class="dp-chart-row">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:10px;">ÉVOLUTION MENSUELLE (12 mois)</div>
+        <div class="dp-chart-wrap"><canvas id="dp-chart-monthly"></canvas></div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:10px;">PAR TECHNICIEN</div>
+        <div class="dp-chart-wrap"><canvas id="dp-chart-tech"></canvas></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const DATA_URL = 'loto_data.json';
+const COLORS = ['#009FDF','#003F6B','#2E7D32','#E65100','#6A1B9A','#00695C','#AD1457','#1565C0','#558B2F','#4E342E','#37474F','#F57F17','#B71C1C','#01579B','#33691E'];
+let ALL_ROWS = [], LOTO_RANKED = [], dpChart1 = null, dpChart2 = null;
+
+function getRolling12() {
+  const now = new Date(); const months = [];
+  for (let i=11;i>=0;i--) {
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    months.push({year:String(d.getFullYear()),month:String(d.getMonth()+1).padStart(2,'0'),label:d.toLocaleDateString('fr-FR',{month:'short',year:'numeric'})});
+  }
+  return months;
+}
+
+function filterTable() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const filtered = q ? LOTO_RANKED.filter(([l])=>l.toLowerCase().includes(q)) : LOTO_RANKED;
+  document.getElementById('result-count').textContent = filtered.length + ' type(s)';
+  renderTable(filtered, LOTO_RANKED[0]?.[1] || 1);
+}
+
+function renderTable(data, maxVal) {
+  document.getElementById('rank-body').innerHTML = data.map(([loto, cnt], i) => {
+    const pct = (cnt / ALL_ROWS.length * 100).toFixed(1);
+    const barW = (cnt / maxVal * 100).toFixed(0);
+    const rankClass = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-other';
+    const short = loto.length > 60 ? loto.slice(0,58)+'…' : loto;
+    return `<tr style="cursor:pointer" onclick="showDetail('${loto.replace(/'/g,"\\'")}')">
+      <td><span class="rank-num ${rankClass}">${i+1}</span></td>
+      <td title="${loto}">${short}</td>
+      <td><div class="bar-inline"><div class="bar-fill" style="width:${barW}%"></div></div></td>
+      <td><strong>${cnt}</strong></td>
+      <td><span class="pct-badge">${pct}%</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function showDetail(loto) {
+  const rows = ALL_ROWS.filter(r => r.loto === loto);
+  const rolling = getRolling12();
+  document.getElementById('dp-title').textContent = loto;
+  document.getElementById('dp-sub').textContent = rows.length + ' utilisations au total';
+  document.getElementById('detail-panel').classList.add('visible');
+  document.getElementById('detail-panel').scrollIntoView({behavior:'smooth',block:'nearest'});
+
+  const inits = [...new Set(rows.map(r=>r.initial).filter(Boolean))];
+  const parcs = [...new Set(rows.map(r=>r.parc).filter(Boolean))];
+  const now = new Date();
+  const thisM = String(now.getMonth()+1).padStart(2,'0'), thisY = String(now.getFullYear());
+  const thisMo = rows.filter(r=>r.month===thisM&&r.year===thisY).length;
+  document.getElementById('dp-grid').innerHTML = [
+    {v:rows.length,l:'Total'},
+    {v:thisMo,l:'Ce mois'},
+    {v:inits.length,l:'Techniciens'},
+    {v:parcs.length,l:'Parcs'},
+  ].map(s=>`<div class="dp-stat"><div class="dp-stat-val">${s.v}</div><div class="dp-stat-lbl">${s.l}</div></div>`).join('');
+
+  const mCounts = rolling.map(m=>rows.filter(r=>r.month===m.month&&r.year==m.year).length);
+  if(dpChart1) dpChart1.destroy();
+  dpChart1 = new Chart(document.getElementById('dp-chart-monthly'),{
+    type:'bar',
+    data:{labels:rolling.map(m=>m.label),datasets:[{data:mCounts,backgroundColor:'rgba(0,159,223,0.6)',borderColor:'#009FDF',borderWidth:1.5,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,63,107,.08)'}},x:{grid:{display:false},ticks:{font:{size:10}}}}}
+  });
+
+  const techMap = {};
+  rows.forEach(r=>{if(r.initial)techMap[r.initial]=(techMap[r.initial]||0)+1;});
+  const te = Object.entries(techMap).sort((a,b)=>b[1]-a[1]);
+  if(dpChart2) dpChart2.destroy();
+  dpChart2 = new Chart(document.getElementById('dp-chart-tech'),{
+    type:'doughnut',
+    data:{labels:te.map(e=>e[0]),datasets:[{data:te.map(e=>e[1]),backgroundColor:COLORS,borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:12,padding:6}}}}
+  });
+}
+
+async function main() {
+  const res = await fetch(DATA_URL+'?t='+Date.now()).catch(()=>null);
+  document.getElementById('loading').style.opacity='0';
+  setTimeout(()=>document.getElementById('loading').style.display='none',500);
+  if(!res||!res.ok) return;
+  const data = await res.json();
+  ALL_ROWS = data.rows||[];
+
+  const lotoMap = {};
+  ALL_ROWS.forEach(r=>{if(r.loto)lotoMap[r.loto]=(lotoMap[r.loto]||0)+1;});
+  LOTO_RANKED = Object.entries(lotoMap).sort((a,b)=>b[1]-a[1]);
+
+  document.getElementById('result-count').textContent = LOTO_RANKED.length + ' type(s)';
+  renderTable(LOTO_RANKED, LOTO_RANKED[0]?.[1]||1);
+
+  const top10 = LOTO_RANKED.slice(0,10);
+  const shortL = top10.map(([l])=>l.length>30?l.slice(0,28)+'…':l);
+  new Chart(document.getElementById('chart-donut'),{
+    type:'doughnut',
+    data:{labels:shortL,datasets:[{data:top10.map(e=>e[1]),backgroundColor:COLORS,borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{family:'Inter',size:11},boxWidth:12,padding:10}}}}
+  });
+
+  const top15 = LOTO_RANKED.slice(0,15);
+  new Chart(document.getElementById('chart-hbar'),{
+    type:'bar',
+    data:{labels:top15.map(([l])=>l.length>28?l.slice(0,26)+'…':l),datasets:[{data:top15.map(e=>e[1]),backgroundColor:COLORS.slice(0,15),borderRadius:4}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'rgba(0,63,107,.08)'},ticks:{font:{size:11}}},y:{grid:{display:false},ticks:{font:{size:10}}}}}
+  });
+}
+main();
+</script>
+</body>
+</html>

@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LOTO Dashboard — Loiret | Vestas</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --vestas-blue:    #003F6B;
+    --vestas-sky:     #009FDF;
+    --vestas-light:   #E8F4FB;
+    --vestas-dark:    #001F35;
+    --vestas-grey:    #F4F6F8;
+    --vestas-border:  #D0E4F0;
+    --vestas-green:   #2E7D32;
+    --vestas-red:     #C62828;
+    --vestas-orange:  #E65100;
+    --text-primary:   #001F35;
+    --text-secondary: #4A6275;
+    --white: #FFFFFF;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: var(--vestas-grey); color: var(--text-primary); min-height: 100vh; }
+
+  /* ── NAV ── */
+  nav {
+    background: var(--vestas-blue);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    height: 60px;
+    gap: 32px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+  }
+  .nav-brand {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 20px; font-weight: 700;
+    color: var(--white);
+    letter-spacing: 1px;
+    margin-right: auto;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .nav-brand svg { width: 28px; height: 28px; fill: var(--vestas-sky); }
+  nav a {
+    color: rgba(255,255,255,0.75);
+    text-decoration: none;
+    font-size: 13px; font-weight: 500;
+    letter-spacing: 0.5px;
+    padding: 6px 14px;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+  nav a:hover { color: #fff; background: rgba(255,255,255,0.1); }
+  nav a.active { color: var(--vestas-sky); border-bottom: 2px solid var(--vestas-sky); border-radius: 0; }
+
+  /* ── HEADER ── */
+  .page-header {
+    background: linear-gradient(135deg, var(--vestas-blue) 0%, #005A9E 100%);
+    padding: 36px 40px 28px;
+    color: white;
+  }
+  .page-header h1 { font-family: 'Rajdhani', sans-serif; font-size: 32px; font-weight: 700; letter-spacing: 1px; }
+  .page-header p { font-size: 14px; opacity: 0.75; margin-top: 4px; }
+  .last-update { font-size: 12px; opacity: 0.6; margin-top: 8px; }
+
+  /* ── MAIN ── */
+  main { padding: 32px 40px; max-width: 1400px; margin: 0 auto; }
+
+  /* ── KPI CARDS ── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 36px; }
+  .kpi-card {
+    background: var(--white);
+    border-radius: 8px;
+    padding: 20px 24px;
+    border-left: 4px solid var(--vestas-sky);
+    box-shadow: 0 1px 6px rgba(0,63,107,0.08);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,63,107,0.12); }
+  .kpi-label { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--text-secondary); }
+  .kpi-value { font-family: 'Rajdhani', sans-serif; font-size: 42px; font-weight: 700; color: var(--vestas-blue); line-height: 1; margin-top: 6px; }
+  .kpi-sub { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+
+  /* ── CHARTS GRID ── */
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+  .chart-full { grid-column: 1 / -1; }
+  .chart-card {
+    background: var(--white);
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 1px 6px rgba(0,63,107,0.08);
+  }
+  .chart-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px; font-weight: 700;
+    color: var(--vestas-blue);
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .chart-sub { font-size: 12px; color: var(--text-secondary); margin-bottom: 20px; }
+  .chart-wrap { position: relative; height: 280px; }
+  .chart-wrap-tall { position: relative; height: 340px; }
+
+  /* ── LOADING ── */
+  #loading {
+    position: fixed; inset: 0;
+    background: var(--vestas-blue);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 999;
+    transition: opacity 0.5s;
+  }
+  #loading .spinner {
+    width: 48px; height: 48px;
+    border: 4px solid rgba(255,255,255,0.2);
+    border-top-color: var(--vestas-sky);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  #loading p { color: rgba(255,255,255,0.8); margin-top: 16px; font-size: 14px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── CONFIG BANNER ── */
+  #config-banner {
+    background: #FFF8E1; border: 1px solid #FFB300;
+    padding: 14px 20px; border-radius: 8px;
+    margin-bottom: 24px; font-size: 13px; color: #5D4037;
+    display: none;
+  }
+  #config-banner code { background: rgba(0,0,0,0.08); padding: 2px 6px; border-radius: 3px; }
+
+  @media (max-width: 768px) {
+    main { padding: 20px; }
+    .charts-grid { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <p>Chargement des données LOTO…</p>
+</div>
+
+<nav>
+  <div class="nav-brand">
+    <svg viewBox="0 0 24 24"><path d="M12 2L8 8H3l4 3-1.5 5L12 13l6.5 3L17 11l4-3h-5z"/></svg>
+    LOTO Loiret
+  </div>
+  <a href="dashboard.html" class="active">Dashboard</a>
+  <a href="techniciens.html">Techniciens</a>
+  <a href="lotos.html">Types LOTO</a>
+  <a href="tendances.html">Tendances</a>
+</nav>
+
+<div class="page-header">
+  <h1>TABLEAU DE BORD — LOTO COMPLETED</h1>
+  <p>Région Loiret · Vestas France</p>
+  <div class="last-update" id="last-update">Chargement…</div>
+</div>
+
+<main>
+  <div id="config-banner">
+    ⚠️ Configurez l'URL du fichier JSON : ouvrez ce fichier HTML et remplacez <code>DATA_URL</code> par l'URL raw de votre fichier GitHub.
+  </div>
+
+  <div class="kpi-grid" id="kpi-grid"></div>
+
+  <div class="charts-grid">
+    <div class="chart-card chart-full">
+      <div class="chart-title">ACTIVITÉ MENSUELLE</div>
+      <div class="chart-sub">Nombre de LOTO completed par mois — 12 mois glissants</div>
+      <div class="chart-wrap-tall"><canvas id="chart-monthly"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">RÉPARTITION PAR TECHNICIEN</div>
+      <div class="chart-sub">Total sur 12 mois glissants</div>
+      <div class="chart-wrap"><canvas id="chart-tech"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">TOP 5 TYPES DE LOTO</div>
+      <div class="chart-sub">Les plus fréquents</div>
+      <div class="chart-wrap"><canvas id="chart-loto"></canvas></div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ── CONFIGURATION ────────────────────────────────────────
+const DATA_URL = 'loto_data.json'; // Remplacer par URL raw GitHub ex: https://raw.githubusercontent.com/USER/REPO/main/loto_data.json
+
+// ── VESTAS PALETTE ───────────────────────────────────────
+const COLORS = ['#009FDF','#003F6B','#2E7D32','#E65100','#6A1B9A','#00695C','#AD1457','#1565C0','#558B2F','#4E342E','#37474F','#F57F17'];
+
+// ── DATA LOADING ─────────────────────────────────────────
+async function loadData() {
+  try {
+    const res = await fetch(DATA_URL + '?t=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  } catch(e) {
+    document.getElementById('config-banner').style.display = 'block';
+    return null;
+  }
+}
+
+// ── HELPERS ──────────────────────────────────────────────
+function getRolling12() {
+  const now = new Date();
+  const months = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({ year: d.getFullYear(), month: String(d.getMonth()+1).padStart(2,'0'), label: d.toLocaleDateString('fr-FR',{month:'short',year:'numeric'}) });
+  }
+  return months;
+}
+
+function countBy(rows, key) {
+  const map = {};
+  rows.forEach(r => { const v = r[key] || 'Inconnu'; map[v] = (map[v]||0)+1; });
+  return map;
+}
+
+function inRolling(row, rolling) {
+  return rolling.some(m => m.year == row.year && m.month == row.month);
+}
+
+// ── RENDER ───────────────────────────────────────────────
+async function render() {
+  const data = await loadData();
+  document.getElementById('loading').style.opacity = '0';
+  setTimeout(() => document.getElementById('loading').style.display = 'none', 500);
+  if (!data) return;
+
+  const rows = data.rows || [];
+  document.getElementById('last-update').textContent = 'Dernière mise à jour : ' + (data.lastUpdate || '—');
+
+  const rolling = getRolling12();
+  const rollingRows = rows.filter(r => inRolling(r, rolling));
+
+  // ── KPIs
+  const inits = [...new Set(rows.map(r => r.initial).filter(Boolean))];
+  const parcs = [...new Set(rows.map(r => r.parc).filter(Boolean))];
+  const lotos = [...new Set(rows.map(r => r.loto).filter(Boolean))];
+  const now = new Date();
+  const thisMonth = String(now.getMonth()+1).padStart(2,'0');
+  const thisYear = String(now.getFullYear());
+  const thisMoCnt = rows.filter(r => r.month === thisMonth && r.year === thisYear).length;
+  const prevMo = now.getMonth() === 0 ? 12 : now.getMonth();
+  const prevYr = now.getMonth() === 0 ? now.getFullYear()-1 : now.getFullYear();
+  const prevMoCnt = rows.filter(r => r.month === String(prevMo).padStart(2,'0') && r.year === String(prevYr)).length;
+  const delta = thisMoCnt - prevMoCnt;
+  const deltaStr = (delta >= 0 ? '+' : '') + delta;
+  const deltaColor = delta >= 0 ? '#2E7D32' : '#C62828';
+
+  const kpis = [
+    { label: 'Total LOTO', value: rows.length, sub: 'Toutes périodes' },
+    { label: 'Ce mois', value: thisMoCnt, sub: `<span style="color:${deltaColor};font-weight:600">${deltaStr} vs mois préc.</span>` },
+    { label: 'Techniciens', value: inits.length, sub: 'Actifs' },
+    { label: 'Parcs couverts', value: parcs.length, sub: 'Loiret' },
+    { label: 'Types de LOTO', value: lotos.length, sub: 'Distincts' },
+    { label: '12 mois glissants', value: rollingRows.length, sub: 'LOTO completed' },
+  ];
+
+  document.getElementById('kpi-grid').innerHTML = kpis.map(k => `
+    <div class="kpi-card">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`).join('');
+
+  // ── Chart monthly
+  const monthCounts = rolling.map(m => rows.filter(r => r.month === m.month && r.year == m.year).length);
+  new Chart(document.getElementById('chart-monthly'), {
+    type: 'bar',
+    data: {
+      labels: rolling.map(m => m.label),
+      datasets: [{
+        label: 'LOTO Completed',
+        data: monthCounts,
+        backgroundColor: monthCounts.map((v,i) => i === 11 ? '#009FDF' : 'rgba(0,159,223,0.45)'),
+        borderColor: monthCounts.map((v,i) => i === 11 ? '#003F6B' : '#009FDF'),
+        borderWidth: 1.5,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: 'rgba(0,63,107,0.08)' }, ticks: { font: { family: 'Inter', size: 12 } } },
+        x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11 } } }
+      }
+    }
+  });
+
+  // ── Chart techniciens (doughnut)
+  const techMap = countBy(rollingRows, 'initial');
+  const techEntries = Object.entries(techMap).sort((a,b) => b[1]-a[1]);
+  new Chart(document.getElementById('chart-tech'), {
+    type: 'doughnut',
+    data: {
+      labels: techEntries.map(e => e[0]),
+      datasets: [{ data: techEntries.map(e => e[1]), backgroundColor: COLORS, borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { font: { family: 'Inter', size: 12 }, boxWidth: 14, padding: 12 } }
+      }
+    }
+  });
+
+  // ── Chart top 5 lotos (horizontal bar)
+  const lotoMap = countBy(rows, 'loto');
+  const lotoTop = Object.entries(lotoMap).sort((a,b) => b[1]-a[1]).slice(0,5);
+  const shortLabels = lotoTop.map(([l]) => l.length > 40 ? l.slice(0,38)+'…' : l);
+  new Chart(document.getElementById('chart-loto'), {
+    type: 'bar',
+    data: {
+      labels: shortLabels,
+      datasets: [{ data: lotoTop.map(e => e[1]), backgroundColor: COLORS.slice(0,5), borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, grid: { color: 'rgba(0,63,107,0.08)' }, ticks: { font: { family: 'Inter', size: 11 } } },
+        y: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11 } } }
+      }
+    }
+  });
+}
+
+render();
+</script>
+</body>
+</html>
