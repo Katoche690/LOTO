@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LOTO par Semaine 2026 — Loiret | Vestas</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --vestas-blue:#003F6B; --vestas-sky:#009FDF; --vestas-light:#E8F4FB;
+    --vestas-grey:#EEF2F7; --vestas-border:#D0E4F0;
+    --text-primary:#001F35; --text-secondary:#4A6275; --white:#FFFFFF;
+    --gold:#F5A623; --silver:#A8B8C8; --bronze:#CD7F32;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { height:100%; width:100%; overflow:hidden; font-family:'Inter',sans-serif; background:var(--vestas-grey); color:var(--text-primary); }
+
+  .screen {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    height: 100vh;
+    padding: 14px 18px;
+    gap: 12px;
+  }
+
+  /* ── KPI row (haut) ── */
+  .kpi-row { display:flex; gap:12px; }
+  .kpi-box {
+    background:var(--white); border-radius:10px;
+    padding:10px 18px; box-shadow:0 2px 8px rgba(0,63,107,.09);
+    flex:1; display:flex; flex-direction:column; justify-content:center;
+  }
+  .kpi-lbl { font-size:10px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--text-secondary); }
+  .kpi-val { font-family:'Rajdhani',sans-serif; font-size:50px; font-weight:700; color:var(--vestas-blue); line-height:1; margin-top:2px; }
+  .kpi-sub { font-size:11px; color:var(--text-secondary); margin-top:2px; }
+
+  /* ── Graphiques (milieu) ── */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1.35fr 0.65fr;
+    gap: 12px;
+    min-height: 0;
+  }
+  .card {
+    background:var(--white); border-radius:10px;
+    padding:14px 18px; box-shadow:0 2px 8px rgba(0,63,107,.09);
+    display:flex; flex-direction:column; min-height:0;
+  }
+  .card-title { font-family:'Rajdhani',sans-serif; font-size:15px; font-weight:700; color:var(--vestas-blue); margin-bottom:1px; flex-shrink:0; }
+  .card-sub   { font-size:10px; color:var(--text-secondary); margin-bottom:8px; flex-shrink:0; }
+  .chart-container { flex:1; position:relative; min-height:0; }
+  .chart-container canvas { position:absolute; inset:0; width:100%!important; height:100%!important; }
+
+  /* ── Podium TOP 3 (bas) ── */
+  .podium-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+  .podium-card {
+    border-radius: 10px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.12);
+  }
+  .podium-card.p1 { background: linear-gradient(135deg, #1A1A2E, #003F6B); }
+  .podium-card.p2 { background: linear-gradient(135deg, #1C2B3A, #2C4A6E); }
+  .podium-card.p3 { background: linear-gradient(135deg, #1C2B3A, #2C4A6E); }
+
+  .podium-medal {
+    font-size: 36px;
+    flex-shrink: 0;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,.3));
+  }
+  .podium-info { flex:1; min-width:0; }
+  .podium-rank {
+    font-size: 10px; font-weight:700; letter-spacing:1.5px;
+    text-transform:uppercase; opacity:.6; color:#fff;
+    margin-bottom:2px;
+  }
+  .podium-name {
+    font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:700;
+    color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    line-height:1.1;
+  }
+  .podium-since { font-size:11px; color:rgba(255,255,255,.6); margin-top:2px; }
+  .podium-score {
+    font-family:'Rajdhani',sans-serif; font-size:44px; font-weight:700;
+    line-height:1; flex-shrink:0;
+  }
+  .podium-card.p1 .podium-score { color: var(--gold); }
+  .podium-card.p2 .podium-score { color: var(--silver); }
+  .podium-card.p3 .podium-score { color: var(--bronze); }
+  .podium-score-lbl { font-size:10px; color:rgba(255,255,255,.5); text-align:center; margin-top:2px; }
+
+  /* Loading */
+  #loading { position:fixed; inset:0; background:var(--vestas-blue); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:999; transition:opacity .5s; }
+  .spinner { width:52px; height:52px; border:4px solid rgba(255,255,255,.2); border-top-color:var(--vestas-sky); border-radius:50%; animation:spin .8s linear infinite; }
+  #loading p { color:rgba(255,255,255,.8); margin-top:18px; font-size:15px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div><p>Chargement des données…</p></div>
+
+<div class="screen">
+
+  <!-- KPIs haut -->
+  <div class="kpi-row" id="kpi-row"></div>
+
+  <!-- Graphiques milieu -->
+  <div class="charts-grid">
+    <div class="card">
+      <div class="card-title">Nombre de LOTO par semaine</div>
+      <div class="card-sub">Axe bas = mois — 2026</div>
+      <div class="chart-container"><canvas id="chart-weekly"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Total par technicien</div>
+      <div class="card-sub">Depuis le 01/01/2026</div>
+      <div class="chart-container"><canvas id="chart-hbar"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Podium bas -->
+  <div class="podium-row" id="podium-row"></div>
+
+</div>
+
+<script>
+const DATA_URL = 'loto_data.json';
+
+const TECH_COLORS = [
+  '#009FDF','#E65100','#2E7D32','#7B1FA2','#C62828',
+  '#00695C','#AD1457','#F57F17','#4527A0','#0277BD',
+  '#558B2F','#6D4C41','#37474F','#00838F','#003F6B',
+];
+
+const MONTHS_FR = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
+const MEDALS = ['🥇','🥈','🥉'];
+const RANKS  = ['1ER','2ÈME','3ÈME'];
+
+function getWeekNumber(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+function weekToMonday(week, year) {
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const s = new Date(jan4);
+  s.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() + 6) % 7));
+  const m = new Date(s);
+  m.setUTCDate(s.getUTCDate() + (week - 1) * 7);
+  return m;
+}
+
+function parseDate(str) {
+  if (!str || str.length < 10) return null;
+  const [d, m, y] = str.slice(0, 10).split('/');
+  if (!d || !m || !y) return null;
+  return new Date(+y, +m - 1, +d);
+}
+
+function isValidInitial(init) {
+  return init && init.trim() !== '' &&
+         init.trim().toLowerCase() !== 'inconnu' &&
+         init.trim() !== 'undefined';
+}
+
+function sinceText(rows, init) {
+  const r = rows.filter(x => x.initial === init);
+  if (!r.length) return '';
+  let oldest = null;
+  r.forEach(x => { const dt = parseDate(x.date); if (dt && (!oldest || dt < oldest)) oldest = dt; });
+  if (!oldest) return '';
+  const days = Math.floor((new Date() - oldest) / 86400000);
+  const mo = Math.floor(days / 30), wk = Math.floor(days / 7);
+  if (mo >= 2) return `depuis ${mo} mois`;
+  if (wk >= 1) return `depuis ${wk} sem.`;
+  return `depuis ${days} j`;
+}
+
+async function main() {
+  const res = await fetch(DATA_URL + '?t=' + Date.now()).catch(() => null);
+  document.getElementById('loading').style.opacity = '0';
+  setTimeout(() => document.getElementById('loading').style.display = 'none', 500);
+  if (!res || !res.ok) return;
+
+  const data = await res.json();
+  const START = new Date(2026, 0, 1);
+
+  const rows = (data.rows || []).filter(r => {
+    if (!isValidInitial(r.initial)) return false;
+    const dt = parseDate(r.date);
+    return dt && dt >= START && dt.getFullYear() === 2026;
+  });
+
+  // Semaines
+  const weekSet = new Set();
+  rows.forEach(r => { const dt = parseDate(r.date); if (dt) weekSet.add(getWeekNumber(dt)); });
+  const weeksToShow = [...weekSet].sort((a,b)=>a-b).filter(w => w <= getWeekNumber(new Date()));
+
+  // Techniciens
+  const initials = [...new Set(rows.map(r => r.initial))].filter(Boolean);
+  const initMap  = {};
+  rows.forEach(r => { if (r.initial && r.expediteur) initMap[r.initial] = r.expediteur; });
+
+  // Totaux semaine
+  const weekTotals = {};
+  weeksToShow.forEach(w => weekTotals[w] = 0);
+  rows.forEach(r => {
+    const dt = parseDate(r.date); if (!dt) return;
+    const w = getWeekNumber(dt);
+    if (weeksToShow.includes(w)) weekTotals[w]++;
+  });
+
+  // Totaux technicien
+  const techTotals = {};
+  initials.forEach(i => techTotals[i] = 0);
+  rows.forEach(r => { if (r.initial) techTotals[r.initial]++; });
+
+  const sortedInits = [...initials].sort((a,b) => techTotals[b] - techTotals[a]);
+
+  // KPIs
+  const totalLoto = rows.length;
+  const lastW     = weeksToShow[weeksToShow.length - 1];
+  const prevW     = weeksToShow[weeksToShow.length - 2];
+  const lastWVal  = weekTotals[lastW] || 0;
+  const delta     = lastWVal - (weekTotals[prevW] || 0);
+  const maxWVal   = Math.max(...Object.values(weekTotals));
+  const maxW      = weeksToShow.find(w => weekTotals[w] === maxWVal);
+
+  document.getElementById('kpi-row').innerHTML = `
+    <div class="kpi-box">
+      <div class="kpi-lbl">Loto User</div>
+      <div class="kpi-val">${sortedInits.length}</div>
+      <div class="kpi-sub">Techniciens actifs 2026</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-lbl">Loto Performed</div>
+      <div class="kpi-val">${totalLoto}</div>
+      <div class="kpi-sub">Total depuis le 01/01/2026</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-lbl">Semaine S${lastW}</div>
+      <div class="kpi-val">${lastWVal}</div>
+      <div class="kpi-sub" style="color:${delta>=0?'#2E7D32':'#C62828'};font-weight:700">${delta>=0?'+':''}${delta} vs S${prevW||'—'}</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-lbl">Meilleure semaine</div>
+      <div class="kpi-val">${maxWVal}</div>
+      <div class="kpi-sub">Semaine ${maxW} — 2026</div>
+    </div>
+  `;
+
+  // Podium TOP 3
+  const top3 = sortedInits.slice(0, 3);
+  document.getElementById('podium-row').innerHTML = top3.map((init, i) => {
+    const name  = initMap[init] || init;
+    const count = techTotals[init] || 0;
+    const since = sinceText(rows, init);
+    return `
+      <div class="podium-card p${i+1}">
+        <div class="podium-medal">${MEDALS[i]}</div>
+        <div class="podium-info">
+          <div class="podium-rank">${RANKS[i]}</div>
+          <div class="podium-name">${name}</div>
+          <div class="podium-since">${since}</div>
+        </div>
+        <div>
+          <div class="podium-score">${count}</div>
+          <div class="podium-score-lbl">LOTO</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Courbe hebdomadaire
+  const monthLabels = weeksToShow.map(w => MONTHS_FR[weekToMonday(w, 2026).getUTCMonth()]);
+  const dedupLabels = monthLabels.map((l,i) => (i===0 || l!==monthLabels[i-1]) ? l : '');
+
+  new Chart(document.getElementById('chart-weekly'), {
+    type: 'line',
+    data: {
+      labels: dedupLabels,
+      datasets: [{
+        label: 'LOTO',
+        data: weeksToShow.map(w => weekTotals[w]),
+        borderColor: '#009FDF',
+        backgroundColor: 'rgba(0,159,223,0.1)',
+        borderWidth: 3, fill: true, tension: 0.35,
+        pointRadius: weeksToShow.map((_,i) => i===weeksToShow.length-1 ? 7 : 3),
+        pointBackgroundColor: '#009FDF', pointBorderColor:'#fff', pointBorderWidth:2,
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend:{ display:false },
+        tooltip:{ callbacks:{
+          title: ctx => 'S'+weeksToShow[ctx[0].dataIndex]+' — '+monthLabels[ctx[0].dataIndex],
+          label: ctx => ctx.parsed.y+' LOTO'
+        }}
+      },
+      scales:{
+        y:{ beginAtZero:true, grid:{color:'rgba(0,63,107,.07)'}, ticks:{font:{size:13},stepSize:5} },
+        x:{ grid:{color:'rgba(0,63,107,.04)'}, ticks:{font:{size:13,weight:'700'},color:'#003F6B',maxRotation:0} }
+      }
+    }
+  });
+
+  // Barres horizontales
+  new Chart(document.getElementById('chart-hbar'), {
+    type: 'bar',
+    data: {
+      labels: sortedInits.map(i => initMap[i] || i),
+      datasets: [{
+        data: sortedInits.map(i => techTotals[i]),
+        backgroundColor: sortedInits.map((_,i) => TECH_COLORS[i % TECH_COLORS.length]),
+        borderRadius: 5, borderSkipped: false,
+      }]
+    },
+    options: {
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>ctx.parsed.x+' LOTO'}} },
+      scales:{
+        x:{ beginAtZero:true, grid:{color:'rgba(0,63,107,.07)'}, ticks:{font:{size:12}} },
+        y:{ grid:{display:false}, ticks:{font:{size:13}} }
+      }
+    }
+  });
+}
+
+main();
+</script>
+</body>
+</html>
