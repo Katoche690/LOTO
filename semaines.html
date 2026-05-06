@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LOTO par Semaine 2026 — Loiret | Vestas</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --vestas-blue:#003F6B; --vestas-sky:#009FDF; --vestas-light:#E8F4FB;
+    --vestas-grey:#F4F6F8; --vestas-border:#D0E4F0;
+    --text-primary:#001F35; --text-secondary:#4A6275; --white:#FFFFFF;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Inter',sans-serif; background:var(--vestas-grey); color:var(--text-primary); }
+
+  nav { background:var(--vestas-blue); padding:0 32px; display:flex; align-items:center; height:60px; gap:32px; position:sticky; top:0; z-index:100; box-shadow:0 2px 12px rgba(0,0,0,.25); }
+  .nav-brand { font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:700; color:#fff; letter-spacing:1px; margin-right:auto; display:flex; align-items:center; gap:10px; }
+  .nav-brand svg { width:28px; height:28px; fill:var(--vestas-sky); }
+  nav a { color:rgba(255,255,255,.75); text-decoration:none; font-size:13px; font-weight:500; letter-spacing:.5px; padding:6px 14px; border-radius:4px; transition:all .2s; }
+  nav a:hover { color:#fff; background:rgba(255,255,255,.1); }
+  nav a.active { color:var(--vestas-sky); border-bottom:2px solid var(--vestas-sky); border-radius:0; }
+
+  .page-header { background:linear-gradient(135deg,var(--vestas-blue) 0%,#005A9E 100%); padding:36px 40px 28px; color:#fff; }
+  .page-header h1 { font-family:'Rajdhani',sans-serif; font-size:32px; font-weight:700; letter-spacing:1px; }
+  .page-header p { font-size:14px; opacity:.75; margin-top:4px; }
+
+  main { padding:32px 40px; max-width:1600px; margin:0 auto; }
+
+  /* KPI row */
+  .kpi-row { display:flex; gap:24px; margin-bottom:28px; }
+  .kpi-box { background:var(--white); border-radius:8px; padding:20px 32px; box-shadow:0 1px 6px rgba(0,63,107,.08); min-width:180px; }
+  .kpi-lbl { font-size:12px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--text-secondary); }
+  .kpi-val { font-family:'Rajdhani',sans-serif; font-size:52px; font-weight:700; color:var(--vestas-blue); line-height:1; margin-top:4px; }
+  .kpi-sub { font-size:12px; color:var(--text-secondary); margin-top:4px; }
+
+  /* Layout 2 colonnes */
+  .main-grid { display:grid; grid-template-columns:1fr 1.4fr; gap:24px; align-items:start; }
+
+  .card { background:var(--white); border-radius:8px; padding:28px; box-shadow:0 1px 6px rgba(0,63,107,.08); }
+  .card-title { font-family:'Rajdhani',sans-serif; font-size:17px; font-weight:700; color:var(--vestas-blue); margin-bottom:4px; }
+  .card-sub { font-size:12px; color:var(--text-secondary); margin-bottom:20px; }
+
+  /* Chart courbe */
+  .chart-wrap { position:relative; height:340px; }
+
+  /* Tableau techniciens style screenshot */
+  .tech-table { width:100%; }
+  .tech-table-header { display:flex; align-items:center; margin-bottom:12px; gap:8px; flex-wrap:wrap; }
+  .week-legend { display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:11px; color:var(--text-secondary); }
+  .wl-item { display:flex; align-items:center; gap:3px; }
+  .wl-dot { width:10px; height:10px; border-radius:2px; }
+
+  .tech-row { display:flex; align-items:center; margin-bottom:6px; min-height:28px; }
+  .tech-name { font-size:12px; font-weight:500; color:var(--text-primary); text-align:right; padding-right:12px; min-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tech-bars { display:flex; gap:2px; align-items:center; flex:1; }
+  .week-cell {
+    min-width:22px; height:22px; border-radius:3px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:10px; font-weight:700; color:#fff;
+    cursor:default; transition:opacity .15s;
+    position:relative;
+  }
+  .week-cell:hover { opacity:.8; }
+  .week-cell.empty { background:#F0F4F8; color:#C0C8D0; }
+  .tech-total { font-family:'Rajdhani',sans-serif; font-size:16px; font-weight:700; color:var(--vestas-blue); padding-left:10px; min-width:35px; }
+
+  .total-row { display:flex; align-items:center; margin-top:8px; padding-top:8px; border-top:2px solid var(--vestas-border); }
+
+  /* Tooltip */
+  .tooltip {
+    position:fixed; background:rgba(0,31,53,.92); color:#fff;
+    padding:8px 12px; border-radius:6px; font-size:12px;
+    pointer-events:none; z-index:999; display:none;
+    max-width:220px; line-height:1.5;
+  }
+
+  #loading { position:fixed; inset:0; background:var(--vestas-blue); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:999; transition:opacity .5s; }
+  .spinner { width:48px; height:48px; border:4px solid rgba(255,255,255,.2); border-top-color:var(--vestas-sky); border-radius:50%; animation:spin .8s linear infinite; }
+  #loading p { color:rgba(255,255,255,.8); margin-top:16px; font-size:14px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  @media(max-width:1100px) { .main-grid { grid-template-columns:1fr; } }
+  @media(max-width:768px) { main { padding:20px; } .kpi-row { flex-wrap:wrap; } .tech-name { min-width:130px; } }
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div><p>Chargement des données…</p></div>
+<div class="tooltip" id="tooltip"></div>
+
+<nav>
+  <div class="nav-brand">
+    <svg viewBox="0 0 24 24"><path d="M12 2L8 8H3l4 3-1.5 5L12 13l6.5 3L17 11l4-3h-5z"/></svg>
+    LOTO Loiret
+  </div>
+  <a href="dashboard.html">Dashboard</a>
+  <a href="techniciens.html">Techniciens</a>
+  <a href="lotos.html">Types LOTO</a>
+  <a href="tendances.html">Tendances</a>
+  <a href="semaines.html" class="active">Semaines</a>
+</nav>
+
+<div class="page-header">
+  <h1>LOTO PAR SEMAINE — 2026</h1>
+  <p>Activité hebdomadaire depuis le 01/01/2026 · Loiret</p>
+</div>
+
+<main>
+  <div class="kpi-row" id="kpi-row"></div>
+
+  <div class="main-grid">
+    <!-- Courbe -->
+    <div class="card">
+      <div class="card-title">Nombre de LOTO par semaine</div>
+      <div class="card-sub" id="chart-sub">Année 2026</div>
+      <div class="chart-wrap"><canvas id="chart-weekly"></canvas></div>
+    </div>
+
+    <!-- Tableau techniciens -->
+    <div class="card">
+      <div class="card-title">Nombre de LOTO par technicien</div>
+      <div class="card-sub">Par semaine — 2026 (cellules colorées = nombre de LOTO)</div>
+      <div id="week-legend" class="week-legend" style="margin-bottom:14px;"></div>
+      <div id="tech-table"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const DATA_URL = 'loto_data.json';
+
+// Palette de couleurs pour les semaines (inspirée du screenshot)
+const WEEK_COLORS = [
+  '#7B1FA2','#1565C0','#2E7D32','#E65100','#C62828','#00695C',
+  '#AD1457','#F57F17','#4527A0','#0277BD','#558B2F','#6D4C41',
+  '#37474F','#00838F','#283593','#BF360C','#1B5E20','#880E4F',
+  '#E65100','#1A237E','#004D40','#827717','#33691E','#4A148C',
+  '#01579B','#3E2723','#006064','#F57F17','#263238','#B71C1C',
+  '#1B5E20','#880E4F','#0D47A1','#FF6F00','#4E342E','#37474F',
+  '#1A237E','#004D40','#BF360C','#311B92','#0D47A1','#1B5E20',
+  '#4A148C','#E65100','#006064','#37474F','#263238','#33691E',
+  '#01579B','#B71C1C','#880E4F','#827717',
+];
+
+function getWeekNumber(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+function parseDate(str) {
+  if (!str || str.length < 10) return null;
+  const [d, m, y] = str.slice(0, 10).split('/');
+  if (!d || !m || !y) return null;
+  return new Date(+y, +m - 1, +d);
+}
+
+function isValidInitial(init) {
+  return init && init.trim() !== '' && init.trim().toLowerCase() !== 'inconnu' && init.trim() !== 'undefined';
+}
+
+async function main() {
+  const res = await fetch(DATA_URL + '?t=' + Date.now()).catch(() => null);
+  document.getElementById('loading').style.opacity = '0';
+  setTimeout(() => document.getElementById('loading').style.display = 'none', 500);
+  if (!res || !res.ok) return;
+
+  const data = await res.json();
+  const START = new Date(2026, 0, 1); // 01/01/2026
+
+  // Filtrer : 2026 uniquement, pas d'inconnu
+  const rows = (data.rows || []).filter(r => {
+    if (!isValidInitial(r.initial)) return false;
+    const dt = parseDate(r.date);
+    if (!dt) return false;
+    return dt >= START && dt.getFullYear() === 2026;
+  });
+
+  // Semaines présentes
+  const weekSet = new Set();
+  rows.forEach(r => {
+    const dt = parseDate(r.date);
+    if (dt) weekSet.add(getWeekNumber(dt));
+  });
+  const weeks = [...weekSet].sort((a, b) => a - b);
+  const currentWeek = getWeekNumber(new Date());
+  const weeksToShow = weeks.filter(w => w <= currentWeek);
+
+  // Techniciens (triés par total décroissant)
+  const initials = [...new Set(rows.map(r => r.initial))].filter(Boolean);
+  const initMap = {}; // initial -> full name
+  rows.forEach(r => { if (r.initial && r.expediteur) initMap[r.initial] = r.expediteur; });
+
+  // Counts par semaine globaux
+  const weekTotals = {};
+  weeksToShow.forEach(w => weekTotals[w] = 0);
+  rows.forEach(r => {
+    const dt = parseDate(r.date);
+    if (!dt) return;
+    const w = getWeekNumber(dt);
+    if (weeksToShow.includes(w)) weekTotals[w] = (weekTotals[w] || 0) + 1;
+  });
+
+  // Counts par technicien par semaine
+  const techWeek = {}; // init -> {week -> count}
+  rows.forEach(r => {
+    const dt = parseDate(r.date);
+    if (!dt) return;
+    const w = getWeekNumber(dt);
+    if (!weeksToShow.includes(w)) return;
+    if (!techWeek[r.initial]) techWeek[r.initial] = {};
+    techWeek[r.initial][w] = (techWeek[r.initial][w] || 0) + 1;
+  });
+
+  // Trier techniciens par total décroissant
+  const sortedInits = initials.sort((a, b) => {
+    const ta = Object.values(techWeek[a] || {}).reduce((s, v) => s + v, 0);
+    const tb = Object.values(techWeek[b] || {}).reduce((s, v) => s + v, 0);
+    return tb - ta;
+  });
+
+  // ── KPIs ──────────────────────────────────────────────
+  const totalLoto = rows.length;
+  const totalUsers = sortedInits.length;
+  const maxWeekVal = Math.max(...Object.values(weekTotals));
+  const maxWeek = weeksToShow.find(w => weekTotals[w] === maxWeekVal);
+  const lastWeekVal = weekTotals[weeksToShow[weeksToShow.length - 1]] || 0;
+  const prevWeekVal = weekTotals[weeksToShow[weeksToShow.length - 2]] || 0;
+  const delta = lastWeekVal - prevWeekVal;
+
+  document.getElementById('kpi-row').innerHTML = `
+    <div class="kpi-box">
+      <div class="kpi-lbl">Loto User</div>
+      <div class="kpi-val">${totalUsers}</div>
+      <div class="kpi-sub">Techniciens actifs 2026</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-lbl">Loto Performed</div>
+      <div class="kpi-val">${totalLoto}</div>
+      <div class="kpi-sub">Total depuis le 01/01/2026</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-lbl">Semaine en cours (S${weeksToShow[weeksToShow.length-1]})</div>
+      <div class="kpi-val">${lastWeekVal}</div>
+      <div class="kpi-sub" style="color:${delta>=0?'#2E7D32':'#C62828'};font-weight:600">${delta>=0?'+':''}${delta} vs S${weeksToShow[weeksToShow.length-2]||'—'}</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-lbl">Meilleure semaine</div>
+      <div class="kpi-val">${maxWeekVal}</div>
+      <div class="kpi-sub">Semaine ${maxWeek} — 2026</div>
+    </div>
+  `;
+
+  // ── Courbe ─────────────────────────────────────────────
+  document.getElementById('chart-sub').textContent =
+    `Semaines ${weeksToShow[0]} à ${weeksToShow[weeksToShow.length-1]} — 2026`;
+
+  new Chart(document.getElementById('chart-weekly'), {
+    type: 'line',
+    data: {
+      labels: weeksToShow.map(w => 'S' + w),
+      datasets: [{
+        label: 'LOTO Completed',
+        data: weeksToShow.map(w => weekTotals[w]),
+        borderColor: '#7B1FA2',
+        backgroundColor: 'rgba(123,31,162,0.12)',
+        borderWidth: 2.5,
+        fill: true,
+        tension: 0.3,
+        pointRadius: weeksToShow.map((w,i) => i === weeksToShow.length-1 ? 6 : 3),
+        pointBackgroundColor: '#7B1FA2',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: ctx => 'Semaine ' + weeksToShow[ctx[0].dataIndex],
+            label: ctx => ctx.parsed.y + ' LOTO completed'
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(0,63,107,.07)' },
+          ticks: { font: { family: 'Inter', size: 12 }, stepSize: 5 }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { font: { family: 'Inter', size: 11 } }
+        }
+      }
+    }
+  });
+
+  // ── Légende des semaines ───────────────────────────────
+  const legendHtml = weeksToShow.map((w, i) =>
+    `<span class="wl-item"><span class="wl-dot" style="background:${WEEK_COLORS[i % WEEK_COLORS.length]}"></span>S${w}</span>`
+  ).join('');
+  document.getElementById('week-legend').innerHTML = legendHtml;
+
+  // ── Tableau techniciens ────────────────────────────────
+  const tooltip = document.getElementById('tooltip');
+
+  function showTip(e, text) {
+    tooltip.innerHTML = text;
+    tooltip.style.display = 'block';
+    tooltip.style.left = (e.clientX + 14) + 'px';
+    tooltip.style.top  = (e.clientY - 10) + 'px';
+  }
+  function hideTip() { tooltip.style.display = 'none'; }
+  document.addEventListener('mousemove', e => {
+    if (tooltip.style.display !== 'none') {
+      tooltip.style.left = (e.clientX + 14) + 'px';
+      tooltip.style.top  = (e.clientY - 10) + 'px';
+    }
+  });
+
+  let tableHtml = '';
+
+  // Lignes techniciens
+  sortedInits.forEach(init => {
+    const total = Object.values(techWeek[init] || {}).reduce((s, v) => s + v, 0);
+    const fullname = initMap[init] || init;
+
+    const cells = weeksToShow.map((w, i) => {
+      const cnt = (techWeek[init] || {})[w] || 0;
+      const color = WEEK_COLORS[i % WEEK_COLORS.length];
+      if (cnt === 0) {
+        return `<div class="week-cell empty" data-tip="S${w} · ${fullname}<br>0 LOTO">·</div>`;
+      }
+      return `<div class="week-cell" style="background:${color}" data-tip="S${w} · ${fullname}<br><strong>${cnt} LOTO</strong>">${cnt}</div>`;
+    }).join('');
+
+    tableHtml += `
+      <div class="tech-row">
+        <div class="tech-name" title="${fullname}">${fullname}</div>
+        <div class="tech-bars">${cells}</div>
+        <div class="tech-total">${total}</div>
+      </div>`;
+  });
+
+  // Ligne totaux par semaine
+  const totalCells = weeksToShow.map((w, i) => {
+    const cnt = weekTotals[w] || 0;
+    return `<div class="week-cell" style="background:var(--vestas-blue);font-size:9px" data-tip="S${w} · Total<br><strong>${cnt} LOTO</strong>">${cnt}</div>`;
+  }).join('');
+
+  tableHtml += `
+    <div class="total-row">
+      <div class="tech-name" style="font-weight:700;color:var(--vestas-blue)">TOTAL</div>
+      <div class="tech-bars">${totalCells}</div>
+      <div class="tech-total" style="color:var(--vestas-sky)">${totalLoto}</div>
+    </div>`;
+
+  document.getElementById('tech-table').innerHTML = tableHtml;
+
+  // Tooltips
+  document.querySelectorAll('.week-cell[data-tip]').forEach(el => {
+    el.addEventListener('mouseenter', e => showTip(e, el.dataset.tip));
+    el.addEventListener('mouseleave', hideTip);
+  });
+}
+
+main();
+</script>
+</body>
+</html>
