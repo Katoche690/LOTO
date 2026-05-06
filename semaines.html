@@ -14,9 +14,7 @@
   }
   * { box-sizing:border-box; margin:0; padding:0; }
   body { font-family:'Inter',sans-serif; background:var(--vestas-grey); color:var(--text-primary); }
-
   main { padding:28px 36px; max-width:1700px; margin:0 auto; }
-
   .kpi-row { display:flex; gap:20px; margin-bottom:24px; flex-wrap:wrap; }
   .kpi-box { background:var(--white); border-radius:8px; padding:18px 28px; box-shadow:0 1px 6px rgba(0,63,107,.08); min-width:170px; flex:1; }
   .kpi-box.top1 { background:linear-gradient(135deg,var(--vestas-blue),#005A9E); color:#fff; }
@@ -27,50 +25,29 @@
   .kpi-sub { font-size:12px; color:var(--text-secondary); margin-top:4px; }
   .kpi-box.top1 .kpi-sub { color:rgba(255,255,255,.75); }
   .top1-crown { font-size:20px; margin-bottom:2px; }
-
-  .row1 { display:grid; grid-template-columns:1.2fr 0.8fr; gap:22px; margin-bottom:22px; }
+  .row1 { display:grid; grid-template-columns:1.2fr 0.8fr; gap:22px; }
   .card { background:var(--white); border-radius:8px; padding:24px; box-shadow:0 1px 6px rgba(0,63,107,.08); }
   .card-title { font-family:'Rajdhani',sans-serif; font-size:16px; font-weight:700; color:var(--vestas-blue); margin-bottom:2px; }
   .card-sub { font-size:11px; color:var(--text-secondary); margin-bottom:16px; }
   .chart-wrap { position:relative; height:300px; }
   .chart-wrap-hbar { position:relative; }
-
-  .tech-row { display:flex; align-items:center; margin-bottom:5px; min-height:24px; }
-  .tech-name { font-size:11px; font-weight:500; color:var(--text-primary); text-align:right; padding-right:10px; min-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .tech-bars { display:flex; gap:2px; align-items:center; flex:1; }
-  .week-cell { min-width:20px; height:20px; border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:#fff; cursor:default; transition:opacity .15s; }
-  .week-cell:hover { opacity:.8; }
-  .week-cell.empty { background:#F0F4F8; color:#C0C8D0; }
-  .tech-total { font-family:'Rajdhani',sans-serif; font-size:15px; font-weight:700; color:var(--vestas-blue); padding-left:8px; min-width:32px; }
-  .total-row { display:flex; align-items:center; margin-top:6px; padding-top:6px; border-top:2px solid var(--vestas-border); }
-
-  .week-legend { display:flex; align-items:center; gap:5px; flex-wrap:wrap; font-size:10px; color:var(--text-secondary); margin-bottom:12px; }
-  .wl-item { display:flex; align-items:center; gap:3px; }
-  .wl-dot { width:9px; height:9px; border-radius:2px; }
-
-  .tooltip { position:fixed; background:rgba(0,31,53,.92); color:#fff; padding:8px 12px; border-radius:6px; font-size:12px; pointer-events:none; z-index:999; display:none; max-width:220px; line-height:1.5; }
-
   #loading { position:fixed; inset:0; background:var(--vestas-blue); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:999; transition:opacity .5s; }
   .spinner { width:48px; height:48px; border:4px solid rgba(255,255,255,.2); border-top-color:var(--vestas-sky); border-radius:50%; animation:spin .8s linear infinite; }
   #loading p { color:rgba(255,255,255,.8); margin-top:16px; font-size:14px; }
   @keyframes spin { to { transform:rotate(360deg); } }
-
   @media(max-width:1100px) { .row1 { grid-template-columns:1fr; } }
-  @media(max-width:768px) { main { padding:16px; } .tech-name { min-width:120px; } }
+  @media(max-width:768px) { main { padding:16px; } }
 </style>
 </head>
 <body>
 
 <div id="loading"><div class="spinner"></div><p>Chargement des données…</p></div>
-<div class="tooltip" id="tooltip"></div>
 
 <main>
   <div class="kpi-row" id="kpi-row"></div>
-
   <div class="row1">
     <div class="card">
       <div class="card-title">Nombre de LOTO par semaine</div>
-      <div class="card-sub">Axe bas = mois — 2026</div>
       <div class="chart-wrap"><canvas id="chart-weekly"></canvas></div>
     </div>
     <div class="card">
@@ -79,29 +56,10 @@
       <div class="chart-wrap-hbar"><canvas id="chart-hbar"></canvas></div>
     </div>
   </div>
-
-  <div class="card">
-    <div class="card-title">Détail par technicien et par semaine</div>
-    <div class="card-sub">Cellules colorées = nombre de LOTO · 2026</div>
-    <div id="week-legend" class="week-legend"></div>
-    <div id="tech-table"></div>
-  </div>
 </main>
 
 <script>
 const DATA_URL = 'loto_data.json';
-
-const WEEK_COLORS = [
-  '#7B1FA2','#1565C0','#2E7D32','#E65100','#C62828','#00695C',
-  '#AD1457','#F57F17','#4527A0','#0277BD','#558B2F','#6D4C41',
-  '#37474F','#00838F','#283593','#BF360C','#1B5E20','#880E4F',
-  '#E65100','#1A237E','#004D40','#827717','#33691E','#4A148C',
-  '#01579B','#3E2723','#006064','#F57F17','#263238','#B71C1C',
-  '#1B5E20','#880E4F','#0D47A1','#FF6F00','#4E342E','#37474F',
-  '#1A237E','#004D40','#BF360C','#311B92','#0D47A1','#1B5E20',
-  '#4A148C','#E65100','#006064','#37474F','#263238','#33691E',
-  '#01579B','#B71C1C','#880E4F','#827717',
-];
 
 const TECH_COLORS = [
   '#009FDF','#003F6B','#2E7D32','#E65100','#7B1FA2',
@@ -193,24 +151,13 @@ async function main() {
   initials.forEach(i => techTotals[i] = 0);
   rows.forEach(r => { if (r.initial) techTotals[r.initial]++; });
 
-  const techWeek = {};
-  rows.forEach(r => {
-    const dt = parseDate(r.date); if (!dt) return;
-    const w = getWeekNumber(dt);
-    if (!weeksToShow.includes(w)) return;
-    if (!techWeek[r.initial]) techWeek[r.initial] = {};
-    techWeek[r.initial][w] = (techWeek[r.initial][w] || 0) + 1;
-  });
-
   const sortedInits = [...initials].sort((a, b) => techTotals[b] - techTotals[a]);
 
-  // Top 1
   const top1 = sortedInits[0];
   const top1Name = initMap[top1] || top1;
   const top1Count = techTotals[top1] || 0;
   const top1Since = sinceText(rows, top1);
 
-  // KPIs
   const totalLoto = rows.length;
   const lastW = weeksToShow[weeksToShow.length - 1];
   const prevW = weeksToShow[weeksToShow.length - 2];
@@ -248,7 +195,6 @@ async function main() {
     </div>
   `;
 
-  // Courbe — labels = mois, affichés uniquement au changement
   const monthLabels = weeksToShow.map(w => MONTHS_FR[weekToMonday(w, 2026).getUTCMonth()]);
   const dedupLabels = monthLabels.map((l, i) => (i === 0 || l !== monthLabels[i-1]) ? l : '');
 
@@ -282,7 +228,6 @@ async function main() {
     }
   });
 
-  // Barres horizontales — hauteur dynamique selon nb de techniciens
   const barH = Math.max(200, sortedInits.length * 28);
   document.getElementById('chart-hbar').style.height = barH + 'px';
 
@@ -304,41 +249,6 @@ async function main() {
         y: { grid: { display: false }, ticks: { font: { size: 11 } } }
       }
     }
-  });
-
-  // Légende semaines
-  document.getElementById('week-legend').innerHTML = weeksToShow.map((w, i) =>
-    `<span class="wl-item"><span class="wl-dot" style="background:${WEEK_COLORS[i%WEEK_COLORS.length]}"></span>S${w}</span>`
-  ).join('');
-
-  // Tableau
-  const tooltip = document.getElementById('tooltip');
-  function showTip(e, t) { tooltip.innerHTML=t; tooltip.style.display='block'; tooltip.style.left=(e.clientX+14)+'px'; tooltip.style.top=(e.clientY-10)+'px'; }
-  function hideTip() { tooltip.style.display='none'; }
-  document.addEventListener('mousemove', e => { if(tooltip.style.display!=='none'){tooltip.style.left=(e.clientX+14)+'px'; tooltip.style.top=(e.clientY-10)+'px';} });
-
-  let html = '';
-  sortedInits.forEach(init => {
-    const total = Object.values(techWeek[init]||{}).reduce((s,v)=>s+v,0);
-    const name = initMap[init]||init;
-    const cells = weeksToShow.map((w,i) => {
-      const cnt = (techWeek[init]||{})[w]||0;
-      if (!cnt) return `<div class="week-cell empty" data-tip="S${w} · ${name}<br>0 LOTO">·</div>`;
-      return `<div class="week-cell" style="background:${WEEK_COLORS[i%WEEK_COLORS.length]}" data-tip="S${w} · ${name}<br><strong>${cnt} LOTO</strong>">${cnt}</div>`;
-    }).join('');
-    html += `<div class="tech-row"><div class="tech-name" title="${name}">${name}</div><div class="tech-bars">${cells}</div><div class="tech-total">${total}</div></div>`;
-  });
-
-  const totCells = weeksToShow.map((w,i) => {
-    const cnt = weekTotals[w]||0;
-    return `<div class="week-cell" style="background:var(--vestas-blue);font-size:8px" data-tip="S${w}·Total<br><strong>${cnt}</strong>">${cnt}</div>`;
-  }).join('');
-  html += `<div class="total-row"><div class="tech-name" style="font-weight:700;color:var(--vestas-blue)">TOTAL</div><div class="tech-bars">${totCells}</div><div class="tech-total" style="color:var(--vestas-sky)">${totalLoto}</div></div>`;
-
-  document.getElementById('tech-table').innerHTML = html;
-  document.querySelectorAll('.week-cell[data-tip]').forEach(el => {
-    el.addEventListener('mouseenter', e => showTip(e, el.dataset.tip));
-    el.addEventListener('mouseleave', hideTip);
   });
 }
 
